@@ -16,9 +16,8 @@ class User(Base):
 	image_path: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
 	posts: Mapped[list["Post"]] = relationship(back_populates="author")
 	
-@property
 def def_image() -> str:
-	return "default.jpg"
+	return "profile_pics/default.jpg"
 
 
 class Post(Base):
