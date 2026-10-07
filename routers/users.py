@@ -16,6 +16,14 @@ def read_users(db: Annotated[Session, Depends(get_db)]):
     return db.scalars(select(models.User)).all()
 
 
+@router.get("/api/users/{user_id}", response_model=UserResponse)
+def read_user(user_id: int, db: Annotated[Session, Depends(get_db)]):
+    user = db.get(models.User, user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return user
+
+
 @router.post("/api/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Annotated[Session, Depends(get_db)]):
     existing_user = db.scalar(select(models.User).where(models.User.email == user.email))
