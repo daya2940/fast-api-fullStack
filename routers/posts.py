@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 
 import models
 from database import get_db
-from schemas import PostCreate, PostResponse
+from schemas import PostCreate, PostResponse, PostUpdate
 
 router = APIRouter()
 
@@ -43,6 +43,32 @@ def update_post(post_id: int, post_data: PostCreate, db: Annotated[Session, Depe
     db.commit()
     db.refresh(post)
     return post
+
+@router.patch("/api/posts/{post_id}", response_model=PostResponse)
+def update_post_partial(post_id: int, post_data: PostUpdate, db: Annotated[Session, Depends(get_db)]):
+    post = db.get(models.Post, post_id)
+    if post is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    update_data=post_data.model_dump(exclude_unset=True) # model_dump(exclude_unset=True) will return a dictionary of only the fields that were provided in the request body, excluding any fields that were not set. This allows for partial updates of the post object, where only the provided fields are updated while the rest remain unchanged.
+    for key, value in update_data.items():
+        setattr(post, key, value)
+    db.commit()
+    db.refresh(post)
+    return post
+
+@router.delete("/api/posts/{post_id}", response_model=PostResponse)
+def get_post(post_id: int, db: Annotated[Session, Depends(get_db)]):
+    statement = (
+        select(models.Post)
+        .options(selectinload(models.Post.author))
+        .where(models.Post.post_id == post_id)
+    )
+    post = db.scalar(statement)
+    if post is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    db.delete(post)
+    db.commit()
+    
 
 
 @router.post("/api/posts", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
