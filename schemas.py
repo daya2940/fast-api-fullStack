@@ -19,6 +19,12 @@ class UserResponse(UserBase):
     image_file: str | None = Field(default=None)
     image_path: str | None = Field(default=None)
 
+class UserUpdate(UserBase):
+    userName: str = Field(default=None, min_length=1, max_length=100)
+    description: str = Field(default=None)
+    email: EmailStr = Field(default=None, max_length=120)
+    image_file: str | None = Field(default=None)
+
 class PostBase(BaseModel):
     # model_config = ConfigDict(from_attributes=True)
     title: str=Field(min_length=1, max_length=100)
