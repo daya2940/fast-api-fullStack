@@ -8,7 +8,7 @@ from database import Base
 class User(Base):
 	__tablename__ = "users"
 
-	id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+	user_id: Mapped[int] = mapped_column("id", Integer, primary_key=True, index=True)
 	userName: Mapped[str] = mapped_column(String(100))
 	description: Mapped[str] = mapped_column(Text)
 	email: Mapped[str] = mapped_column(String(120), unique=True, index=True)
@@ -23,7 +23,7 @@ def def_image() -> str:
 class Post(Base):
 	__tablename__ = "posts"
 
-	id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+	post_id: Mapped[int] = mapped_column("id", Integer, primary_key=True, index=True)
 	title: Mapped[str] = mapped_column(String(100))
 	content: Mapped[str] = mapped_column(Text)
 	published: Mapped[bool] = mapped_column(Boolean, default=True)

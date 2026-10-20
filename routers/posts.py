@@ -22,11 +22,26 @@ def get_post(post_id: int, db: Annotated[Session, Depends(get_db)]):
     statement = (
         select(models.Post)
         .options(selectinload(models.Post.author))
-        .where(models.Post.id == post_id)
+        .where(models.Post.post_id == post_id)
     )
     post = db.scalar(statement)
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    return post
+
+@router.put("/api/posts/{post_id}", response_model=PostResponse)
+def update_post(post_id: int, post_data: PostCreate, db: Annotated[Session, Depends(get_db)]):
+    post = db.get(models.Post, post_id)
+    if post is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    if post.user_id != post_data.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to update this post")     
+
+    post.title = post_data.title
+    post.content = post_data.content
+    post.user_id = post_data.user_id
+    db.commit()
+    db.refresh(post)
     return post
 
 
