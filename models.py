@@ -14,7 +14,10 @@ class User(Base):
 	email: Mapped[str] = mapped_column(String(120), unique=True, index=True)
 	image_file: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
 	image_path: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
-	posts: Mapped[list["Post"]] = relationship(back_populates="author")
+	posts: Mapped[list["Post"]] = relationship(back_populates="author",cascade="all, delete-orphan", passive_deletes=True) # cascade="all, 
+	#delete-orphan" ensures that when a User is deleted, all associated Post objects are also deleted. passive_deletes=True allows the database 
+	#to handle the deletion of related Post objects without loading them into memory.
+
 	
 def def_image() -> str:
 	return "profile_pics/default.jpg"

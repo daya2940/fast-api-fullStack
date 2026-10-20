@@ -56,14 +56,9 @@ def update_post_partial(post_id: int, post_data: PostUpdate, db: Annotated[Sessi
     db.refresh(post)
     return post
 
-@router.delete("/api/posts/{post_id}", response_model=PostResponse)
-def get_post(post_id: int, db: Annotated[Session, Depends(get_db)]):
-    statement = (
-        select(models.Post)
-        .options(selectinload(models.Post.author))
-        .where(models.Post.post_id == post_id)
-    )
-    post = db.scalar(statement)
+@router.delete("/api/posts/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_post(post_id: int, db: Annotated[Session, Depends(get_db)]) -> None:
+    post = db.get(models.Post, post_id)
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
     db.delete(post)
