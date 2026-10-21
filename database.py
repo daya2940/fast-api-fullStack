@@ -1,25 +1,25 @@
 import os
-from collections.abc import Generator # this is good for intail but production should not be done by this database
+from collections.abc import AsyncGenerator
 
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./blog.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./blog.db")
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine: Engine = create_engine(DATABASE_URL, connect_args=connect_args)
+engine: AsyncEngine = create_async_engine(DATABASE_URL, connect_args=connect_args)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
+SessionLocal = async_sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
 
 class Base(DeclarativeBase):
-	pass
+    pass
 
-
-def get_db() -> Generator[Session, None, None]:
-	db = SessionLocal()
-	try:
-		yield db
-	finally:
-		db.close()
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with SessionLocal() as session:
+        yield session
