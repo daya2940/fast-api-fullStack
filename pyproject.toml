@@ -7,5 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "aiosqlite>=0.22.1",
     "fastapi[standard]>=0.141.1",
+    "pwdlib[argon2]>=0.3.1",
+    "pyjwt>=2.15.1",
     "sqlalchemy[asyncio]>=2.1.1",
 ]

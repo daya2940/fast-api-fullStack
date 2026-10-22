@@ -12,6 +12,7 @@ class User(Base):
 	userName: Mapped[str] = mapped_column(String(100))
 	description: Mapped[str] = mapped_column(Text)
 	email: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+	password_hash: Mapped[str] = mapped_column(String(255),nullable=False)
 	image_file: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
 	image_path: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
 	posts: Mapped[list["Post"]] = relationship(back_populates="author",cascade="all, delete-orphan", passive_deletes=True) # cascade="all, 
