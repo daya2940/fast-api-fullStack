@@ -44,7 +44,6 @@ class PostCreate(PostBase):
     title: str=Field(min_length=1, max_length=100)
     content: str
     published: bool = Field(default=True)
-    user_id: int
 
 class PostUpdate(PostBase):
     title: str | None = Field(default=None, min_length=1, max_length=100)

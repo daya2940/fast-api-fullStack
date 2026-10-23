@@ -22,3 +22,13 @@ So auth.py and config.py lays out the building blocks for password hashing and J
 
 we have made modification to schemas also becasue user do not need to know all the details for eg in a post he should see only the post not the email this is what can be achieved using proper schemas
 
+authentication covers who are you 
+authorization covers what are you allowed to send or do
+
+CurrentUser basically appying authorixation for each route if there will be no user then current user will return 401 and the route will not go through
+
+class PostCreate(PostBase):
+    title: str=Field(min_length=1, max_length=100)
+    content: str
+    published: bool = Field(default=True)
+    user_id: int  here user_id is not safe approach because  anybody can personate any other user so we will be validating it with the help of current user function
