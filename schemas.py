@@ -13,6 +13,7 @@ class UserCreate(UserBase):
     description: str
     email: EmailStr = Field(max_length=120)
     image_file: str | None = Field(default=None)
+    
 
 class UserPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)

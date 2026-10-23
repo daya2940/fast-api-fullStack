@@ -34,6 +34,13 @@ async def get_post(post_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
 
 @router.put("/api/posts/{post_id}", response_model=PostResponse)
 async def update_post(post_id: int, post_data: PostCreate, db: Annotated[AsyncSession, Depends(get_db)],current_user: CurrentUser):
+    # current user is the user object of the currently authenticated user, 
+    # which is obtained from the get_current_user function in auth.py. 
+    # This function verifies the access token and retrieves the corresponding user from the database. 
+    # The current_user parameter is annotated with CurrentUser, 
+    # which is a type alias for models.User that depends on get_current_user. 
+    # This means that FastAPI will automatically call get_current_user and inject the returned 
+    # user object into the current_user parameter when this endpoint is called.
     statement = (
         select(models.Post)
         .options(selectinload(models.Post.author))
