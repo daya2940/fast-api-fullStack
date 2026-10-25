@@ -56,4 +56,11 @@ class PostResponse(PostBase):
     post_id: int
     date_posted: datetime
     author: UserPublic
-    
+
+#pagination
+class PaginationPostResponse(BaseModel):
+    posts: list[PostResponse]
+    total: int
+    skip: int
+    limit: int
+    has_more: bool

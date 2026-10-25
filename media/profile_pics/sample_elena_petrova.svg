@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-label="Elena Petrova avatar">
+  <rect width="300" height="300" rx="150" fill="#CCFBF1"/>
+  <circle cx="150" cy="115" r="57" fill="#0F766E" opacity="0.18"/>
+  <path d="M45 300c8-69 48-105 105-105s97 36 105 105" fill="#0F766E" opacity="0.24"/>
+  <text x="150" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="700" fill="#0F766E">EP</text>
+</svg>

@@ -1,23 +1,45 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select,func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 import models
 from database import get_db
-from schemas import PostCreate, PostResponse, PostUpdate
+from schemas import PostCreate, PostResponse, PostUpdate,PaginationPostResponse
 from auth import CurrentUser
+from fastapi import Query
 
 router = APIRouter()
 
-
-@router.get("/api/posts", response_model=list[PostResponse])
-async def get_posts(db: Annotated[AsyncSession, Depends(get_db)]):
-    statement = select(models.Post).options(selectinload(models.Post.author))
-    result = await db.scalars(statement)
-    return result.all()
+# This is paginated endpoint for fetching posts. It takes two query parameters: 
+# page and size, which determine the page number and the number of posts per page, 
+# respectively. The default values are page=1 and size=10, 
+# with constraints on the minimum and maximum values for size.
+@router.get("/api/posts", response_model=PaginationPostResponse)
+async def get_posts(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 10,
+):
+    total_posts = await db.scalar(select(func.count(models.Post.post_id)))
+    total=total_posts if total_posts is not None else 0
+    statement = (
+        select(models.Post)
+        .options(selectinload(models.Post.author))
+        .order_by(models.Post.date_posted.desc())
+        .offset(skip) #skip the first skip posts and return the next limit posts.
+         # This is used for pagination, where skip 
+          #is the number of posts to skip and limit is the maximum number of posts to return.
+        .limit(limit)
+    )
+    has_more = (skip + len((await db.scalars(statement)).all())) < total
+    # statement = select(models.Post).options(selectinload(models.Post.author))
+    # result = await db.scalars(statement)
+    # return result.all()
+    return PaginationPostResponse(posts=(await db.scalars(statement)).all(), 
+                                  total=total, skip=skip, limit=limit, has_more=has_more)
 
 
 @router.get("/api/posts/{post_id}", response_model=PostResponse)

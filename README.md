@@ -32,3 +32,5 @@ class PostCreate(PostBase):
     content: str
     published: bool = Field(default=True)
     user_id: int  here user_id is not safe approach because  anybody can personate any other user so we will be validating it with the help of current user function
+
+Annotated lets you attach extra information to a type without changing the type itself.
