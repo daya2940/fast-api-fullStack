@@ -9,6 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import models
 from  database import  get_db
+import hashlib
+import secrets
 
 
 password_hasher=PasswordHash.recommended()
@@ -20,6 +22,16 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, hashed_password: str) -> bool:
     return password_hasher.verify(password, hashed_password)
+
+def generate_reset_token() -> str:
+    # Generate a secure random token using secrets module
+    token = secrets.token_urlsafe(32)
+    return token  # Return the plain token
+
+def hash_reset_token(token: str) -> str:
+    # Hash the token using SHA-256
+    hashed_token = hashlib.sha256(token.encode()).hexdigest()
+    return hashed_token
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()

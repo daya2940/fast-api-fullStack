@@ -1,20 +1,25 @@
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status,BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
+from sqlalchemy import delete as sqlalchemy_delete
 
 import models
-from auth import CurrentUser, create_access_token, hash_password, verify_password
+from auth import (CurrentUser, create_access_token, hash_password,
+                   verify_password,generate_reset_token,
+                     hash_reset_token)
 from config import settings
 from database import get_db
 from imageUtils import process_image
-from schemas import Token, UserCreate, UserPrivate, UserPublic, UserUpdate
+from schemas import (Token, UserCreate, UserPrivate,
+                     UserPublic, UserUpdate, ForgotPasswordRequest, ResetPasswordRequest)
+from emailUtils import send_password_reset_email
 
 router = APIRouter()
 
@@ -86,6 +91,65 @@ async def login_for_access_token(
 async def get_current_user( currentUser: CurrentUser
                            ):
     return currentUser
+
+@router.post("/api/users/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest, background_tasks: BackgroundTasks, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await db.scalar(select(models.User).where(func.lower(models.User.email) == func.lower(request.email)))
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if user:
+        await db.execute(sqlalchemy_delete(models.PasswordResetToken).where(models.PasswordResetToken.user_id == user.user_id))
+
+    plain_reset_token = generate_reset_token()
+    hashed_token = hash_reset_token(plain_reset_token)
+    expires_at = datetime.now(UTC) + timedelta(minutes=settings.reset_token_expire_minutes)
+
+    reset_token_record = models.PasswordResetToken(
+        user_id=user.user_id,
+        token=hashed_token,
+        expires_at=expires_at
+    )
+    # Store the reset token in the database
+    db.add(reset_token_record)
+    await db.commit()
+
+    # Send the reset email in the background
+    background_tasks.add_task(
+        send_password_reset_email,
+        to_email=user.email,
+        reset_token=plain_reset_token,
+    )
+
+    return {"message": "Password reset email sent. Please check your inbox."}
+
+@router.post("/api/users/reset-password")
+async def reset_password(request: ResetPasswordRequest, db: Annotated[AsyncSession, Depends(get_db)]):
+    hashed_token = hash_reset_token(request.token)
+    reset_token_record = await db.scalar(
+        select(models.PasswordResetToken).where(models.PasswordResetToken.token == hashed_token)
+    )
+
+    if reset_token_record is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token")
+
+    expires_at = reset_token_record.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+    if expires_at < datetime.now(UTC):
+        await db.delete(reset_token_record)
+        await db.commit()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token")
+
+    user = await db.get(models.User, reset_token_record.user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    user.password_hash = hash_password(request.new_password)
+    await db.delete(reset_token_record)  # Remove the used reset token
+    await db.commit()
+
+    return {"message": "Password has been reset successfully."}
 
 
 @router.put("/api/users/{user_id}", response_model=UserPrivate)
