@@ -6,15 +6,12 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 import models
-from database import Base, engine
+from database import engine
 from routers import posts, users
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    #startup code
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
     yield
     #shutdown code
     await engine.dispose()

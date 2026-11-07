@@ -3,11 +3,14 @@ from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
+from config import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./blog.db")
+# DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./blog.db")
 
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine: AsyncEngine = create_async_engine(DATABASE_URL, connect_args=connect_args)
+# connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+# engine: AsyncEngine = create_async_engine(DATABASE_URL, connect_args=connect_args) this congiguration is limited to sql lite
+
+engine: AsyncEngine = create_async_engine(settings.database_url) # this is how we setup the postgres database
 
 SessionLocal = async_sessionmaker(
     autocommit=False,

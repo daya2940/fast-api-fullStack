@@ -35,3 +35,36 @@ class PostCreate(PostBase):
 
 Annotated lets you attach extra information to a type without changing the type itself.
 aiosmtplib - for email type for checking because python based are synchrinous 
+
+used homebrew to create the db on local system 
+
+
+psql postgres -c "CREATE USER bloguser WITH PASSWORD '';"
+
+createdb blog -O bloguser
+
+uv add  "psycopg[binary]". This is the driver needed to run the postgres
+
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    #startup code
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    yield
+    #shutdown code
+    await engine.dispose(). this part of sqllite is just the creation system it just create the table if it does not exist.
+    Migration is not possible with sqllite
+
+    Alembic is the database migration tool for SQLAlchemy. It tracks changes to your database schema over time—such as adding a column or creating a table—and lets you apply or roll back those changes in a controlled way.
+
+    uv run alembic init ... runs Alembic using the project’s Python environment. The init command creates the initial migration setup: a configuration file and a folder for migration scripts.
+
+uv run alembic init -t alembic uv run alembic init -t async alembic
+In this command, -t means “use this template.” So -t alembic asks Alembic to use a template named alembic; it does not name the migration folder. That’s likely not what you want, and the command also omits the required folder name.
+uv run alembic revision --autogenerate - this is to generate the migration schema from sqlAlchemy to postgres basic
+
+psql blog -U bloguser - to checkinto homebrew and \dt to see the table
+psql blog -U bloguser -d blog -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public - to delete all the tables
+uv run alembic upgrade head - this tells that we wanted to apply all the migrations to the lastest versions
+
+\d helps you to see the individual table in postgres
+ we can check if we are the updated version of elembic or not using - uv run alembic upgrade head

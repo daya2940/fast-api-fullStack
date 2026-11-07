@@ -18,7 +18,9 @@ class User(Base):
 	posts: Mapped[list["Post"]] = relationship(back_populates="author",cascade="all, delete-orphan", passive_deletes=True) # cascade="all, 
 	#delete-orphan" ensures that when a User is deleted, all associated Post objects are also deleted. passive_deletes=True allows the database 
 	#to handle the deletion of related Post objects without loading them into memory.
-
+	likes: Mapped[int] = mapped_column(Integer, default=0,server_default="0")  # New column to store the number of likes for the user
+    # The server_default="0" ensures that if no value is provided during insertion, the default value will be 0 on the server side. 
+	# This is useful for ensuring that the likes column always has a valid integer value, even if not explicitly set during user creation.
 	
 def def_image() -> str:
 	return "profile_pics/default.jpg"
