@@ -18,7 +18,8 @@ async def send_email(to_email: str, subject: str,plain_text: str, html_content: 
                 port=settings.email_port,
                 username=settings.email_username if settings.email_username else None,
                 password=settings.email_password.get_secret_value() or None,
-                use_tls=settings.mail_use_tls,
+                use_tls=False,
+                start_tls=settings.mail_use_tls,
             )
 
 async def send_password_reset_email(to_email: str, reset_token: str):
