@@ -30,5 +30,10 @@ class Settings(BaseSettings):
     frontend_url: str="http://localhost:3000"
 
     max_upload_size: int = 5 * 1024 * 1024  # 5 MB
+    s3_access_key_id: SecretStr | None = None
+    s3_secret_access_key: SecretStr | None = None
+    s3_bucket_name: str
+    s3_region_name: str = "us-east-1"
+    s3_endpoint_url: str | None = None  # Optional custom endpoint URL for S3-compatible services
 
 settings = Settings() #Loaded settings from .env file and environment variables

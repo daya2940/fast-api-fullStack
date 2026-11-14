@@ -1,6 +1,9 @@
 from email.message import EmailMessage
+
 import aiosmtplib
+
 from config import settings
+
 
 async def send_email(to_email: str, subject: str,plain_text: str, html_content: str = None):
     message = EmailMessage() #email message object

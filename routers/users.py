@@ -2,26 +2,62 @@ from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status,BackgroundTasks
+from botocore.exceptions import ClientError
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from fastapi.security import OAuth2PasswordRequestForm
 from PIL import Image, UnidentifiedImageError
+from sqlalchemy import delete as sqlalchemy_delete
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
-from sqlalchemy import delete as sqlalchemy_delete
 
 import models
-from auth import (CurrentUser, create_access_token, hash_password,
-                   verify_password,generate_reset_token,
-                     hash_reset_token)
+from auth import (
+    CurrentUser,
+    create_access_token,
+    generate_reset_token,
+    hash_password,
+    hash_reset_token,
+    verify_password,
+)
 from config import settings
 from database import get_db
-from imageUtils import process_image
-from schemas import (Token, UserCreate, UserPrivate,
-                     UserPublic, UserUpdate, ForgotPasswordRequest, ResetPasswordRequest)
 from emailUtils import send_password_reset_email
+from imageUtils import (
+    delete_profile_image,
+    process_image,
+    upload_profile_image,
+)
+from schemas import (
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    Token,
+    UserCreate,
+    UserPrivate,
+    UserPublic,
+    UserUpdate,
+)
 
 router = APIRouter()
+
+
+def s3_http_exception(error: ClientError, operation: str) -> HTTPException:
+    error_code = error.response.get("Error", {}).get("Code", "Unknown")
+    detail = f"S3 {operation} failed ({error_code})."
+    if error_code == "AccessDenied":
+        detail += (
+            " Check that the app's IAM user or role has the required S3 permission "
+            "for this bucket and object key."
+        )
+    return HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail)
 
 
 def verify_image(image_data: bytes) -> None:
@@ -273,18 +309,26 @@ async def upload_image(
     except (UnidentifiedImageError, OSError, ValueError):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid image file.")
 
-    image_filename = await run_in_threadpool(process_image, BytesIO(image_data))
+    image_filename, image_buffer = await run_in_threadpool(
+        process_image, BytesIO(image_data)
+    )
+    try:
+        image_key, image_url = await upload_profile_image(image_buffer, image_filename)
+    except ClientError as error:
+        raise s3_http_exception(error, "upload") from error
 
     old_filename = current_user.image_file
-    
-    current_user.image_file = image_filename
-    current_user.image_path = f"/media/profile_pics/{image_filename}"
+
+    current_user.image_file = image_key
+    current_user.image_path = image_url
     await db.commit()
     await db.refresh(current_user)
 
     if old_filename:
-            from imageUtils import delete_image
-            delete_image(f"media/profile_pics/{old_filename}")
+        try:
+            await delete_profile_image(old_filename)
+        except ClientError as error:
+            raise s3_http_exception(error, "delete of the previous profile image") from error
 
     return current_user
 
@@ -302,13 +346,15 @@ async def delete_image_route(
 
     old_filename = current_user.image_file
 
+    if old_filename:
+        try:
+            await delete_profile_image(old_filename)
+        except ClientError as error:
+            raise s3_http_exception(error, "delete") from error
+
     current_user.image_file = None
     current_user.image_path = None
     await db.commit()
     await db.refresh(current_user)
-
-    if old_filename:
-        from imageUtils import delete_image
-        delete_image(f"media/profile_pics/{old_filename}")
 
     return current_user

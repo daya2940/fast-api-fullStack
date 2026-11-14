@@ -1,11 +1,10 @@
 
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-import models
 from database import engine
 from routers import posts, users
 
